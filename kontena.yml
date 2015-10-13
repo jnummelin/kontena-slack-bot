@@ -1,0 +1,10 @@
+kontenabot:
+  image: jnummelin/kontena-slack-bot:latest
+  environment:
+    - SLACK_TOKEN=xoxb-1233425436437-dsjkudisudsa
+    - KONTENA_TOKEN=kontena-token
+    - KONTENA_URL=https://192.168.100.100:8443
+    - KONTENA_GRID=test-grid
+    - SSL_IGNORE_ERRORS=true
+    - BOT_NAME=kontenabot
+    - ALLOWED_USERS=user1,user2

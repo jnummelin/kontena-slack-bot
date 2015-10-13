@@ -1,0 +1,25 @@
+{
+  "name": "kontena-slack-bot",
+  "version": "0.0.1",
+  "description": "Slack bot for Kontena docker orchestrator",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jnummelin/kontena-slack-bot"
+  },
+  "keywords": [],
+  "author": "Jussi Nummelin <jussi.nummelin@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jnummelin/kontena-slack-bot/issues"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "slack-client": "*",
+    "bunyan": "*"
+  },
+  "devDependencies": {
+  }
+}
