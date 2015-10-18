@@ -1,3 +1,5 @@
+[![](https://badge.imagelayers.io/jnummelin/kontena-slack-bot:latest.svg)](https://imagelayers.io/?images=jnummelin/kontena-slack-bot:latest 'Get your own badge on imagelayers.io')
+
 # kontena-slack-bot
 
 Slack bot for Kontena docker orchestrator
