@@ -1,4 +1,5 @@
 kontenabot:
+  build: .
   image: jnummelin/kontena-slack-bot:latest
   environment:
     - SLACK_TOKEN=xoxb-1233425436437-dsjkudisudsa
