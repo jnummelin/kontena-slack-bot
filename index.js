@@ -1,78 +1,90 @@
-
-var Slack = require('slack-client')
 var exec = require('child_process').exec;
+const stripAnsi = require('strip-ansi');
 
-var botName = 'kontenabot' || process.env.BOT_NAME;
+var RtmClient = require('@slack/client').RtmClient;
+var CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
+var RTM_EVENTS = require('@slack/client').RTM_EVENTS;
+var MemoryDataStore = require('@slack/client').MemoryDataStore;
+
+var bot_token = process.env.SLACK_TOKEN || '';
+
+var rtm = new RtmClient(bot_token, {
+  logLevel: 'error',
+  dataStore: new MemoryDataStore()
+});
+
+var botName = process.env.BOT_NAME || 'kontenabot';
 var botKeyword = botName + ':';
 
-var slackToken = process.env.SLACK_TOKEN;
-var autoReconnect = true;
-var autoMark = true;
-
-// Setup logging
-var bunyan = require('bunyan');
-var log = bunyan.createLogger({name: botName});
+console.log('Waiting for keyword "' + botKeyword + '"')
 
 // Setup crude way to allow only specified users
 allowChecker = function(user) {
   return true;
 }
-allowedUsers = [];
+var allowedUsers = [];
 if(process.env.ALLOWED_USERS) {
   allowedUsers = process.env.ALLOWED_USERS.split(',');
-  allowChecker = function(user) {
-    username = slack.users[user].name;
-    if(allowedUsers.lastIndexOf(username) != -1) {
+  allowChecker = function(userId) {
+    var user = rtm.dataStore.getUserById(userId);
+    if(allowedUsers.lastIndexOf(user.name) != -1) {
       return true;
     }
     return false;
   }
 }
 
-// Connect to Slack and setup message handlers
-var slack = new Slack(slackToken, autoReconnect, autoMark);
-
-slack.on('open', function () {
-  log.info("Connected to " + slack.team.name + " as " + slack.self.name);
+// The client will emit an RTM.AUTHENTICATED event on successful connection, with the `rtm.start` payload if you want to cache it
+rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
+  console.log(`Logged in as ${rtmStartData.self.name} of team ${rtmStartData.team.name}, but not yet connected to a channel`);
 });
 
-slack.on('message', function (message) {
+var pty = require('node-pty');
+
+// Emitted when there's a message on a channel where the bot is participating
+rtm.on(RTM_EVENTS.MESSAGE, function handleRtmMessage(message) {
   try {
     if(message.text.lastIndexOf(botKeyword, 0) === 0) {
-      channel = slack.getChannelGroupOrDMByID(message.channel);
       if (allowChecker(message.user)) {
         cmd = "kontena " + message.text.substring(botKeyword.length);
-        log.info({user: slack.users[message.user].name, cmd: cmd}, "Executing command");
-        exec(cmd, function(error, stdout, stderr) {
-          if(error) {
-            log.error(error, "Error executing command");
-            if(stderr) {
-              channel.send('```' + stderr + '```');
-            } else {
-              channel.send('Command failed! (no data to show)');
-            }
-          } else {
-            if(stdout) {
-              channel.send('```' + stdout + '```');
-            } else {
-              channel.send('Command sent succesfully! (no data to show)');
-            }
-          }
+        var term = pty.spawn('kontena', message.text.substring(botKeyword.length).trim().split(' '), {
+          name: 'xterm-color',
+          cols: 200,
+          rows: 50,
+          cwd: process.env.HOME,
+          env: process.env
         });
+        // Send typing notification to indicate that the work is ongoing
+        const intervalObj = setInterval(() => {
+          rtm.sendTyping(message.channel);
+        }, 2000);
+        // Collect all output data to an array
+        output = []
+        term.on('data', function(data) {
+          // Strip out color codes etc.
+          out = stripAnsi(data)
+          output.push(out);
+        });
+        // When the spawned process exits
+        term.on('exit', function(code, signal) {
+          // Strip out output rows that look like plain spinner
+          msg = output.filter(function(e) {
+            return !/^[\b|\r]+[\s\S]*[\\|\|\/|\-|\r]+$/.test(e);
+          });
+          clearInterval(intervalObj);
+          rtm.sendMessage('```' + msg.join('') + '```', message.channel);
+        });
+
       } else {
-        channel.send("Sorry, " + slack.users[message.user].name + " does not have permission to control me. :(");
+        rtm.sendMessage("Sorry, " + rtm.dataStore.getUserById(message.user).name + " does not have permission to control me. :(", message.channel);
       }
 
     }
   } catch(err) {
-    log.error(err, 'Error while executing request!');
+    rtm.sendMessage("Oops, something went wrong during command execution:" + err, message.channel);
+    console.log('Error while executing request!' + err);
   }
-
 });
 
-slack.on('error', function (error) {
-  log.error({error: error}, "Error in Slack comms!");
-});
+rtm.start();
 
-// Login to Slack, the callbacks will be called when needed
-slack.login();

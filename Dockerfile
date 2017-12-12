@@ -1,13 +1,17 @@
-FROM gliderlabs/alpine:3.2
+FROM kontena/cli:1.4.2
 MAINTAINER jussi.nummelin@gmail.com
 
-RUN apk update && apk --update add nodejs ruby ruby-dev && gem install kontena-cli
+RUN apk update && apk --update add nodejs
 
-WORKDIR app
+WORKDIR /app
+
 ADD package.json /app/
-RUN npm install
+
+RUN apk --update add --virtual build-dependencies make gcc g++ python && \
+    npm install && \
+    apk del build-dependencies
 
 ADD . /app
 
 
-CMD npm start
+ENTRYPOINT npm start
