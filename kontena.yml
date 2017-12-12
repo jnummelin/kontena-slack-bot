@@ -1,11 +1,60 @@
-kontenabot:
-  build: .
-  image: jnummelin/kontena-slack-bot:latest
-  environment:
-    - SLACK_TOKEN=xoxb-1233425436437-dsjkudisudsa
-    - KONTENA_TOKEN=kontena-token
-    - KONTENA_URL=https://192.168.100.100:8443
-    - KONTENA_GRID=test-grid
-    - SSL_IGNORE_ERRORS=true
-    - BOT_NAME=kontenabot
-    - ALLOWED_USERS=user1,user2
+stack: jussi/slackbot
+version: 0.0.2
+description: Slack bot to manage Kontena grid
+variables:
+  slack_token:
+    type: string
+    from:
+      vault: ${STACK}-SLACK_TOKEN
+      prompt: Slack token
+    to:
+      vault: ${STACK}-SLACK_TOKEN
+  kontena_token:
+    type: string
+    from:
+      vault: ${STACK}-KONTENA_TOKEN
+      prompt: Kontena token
+    to:
+      vault: ${STACK}-KONTENA_TOKEN
+  grid:
+    type: string
+    from:
+      prompt: Grid to manage
+  master:
+    type: string
+    from:
+      prompt: Master URI
+  ignore_ssl:
+    type: boolean
+    default: false
+    from:
+      prompt: Ignore SSL errors (set to true for self signed master cert)
+  name:
+    type: string
+    from:
+      prompt: Name of the bot
+  allowed_users:
+    type: string
+    default: ""
+    from:
+      prompt: Allowed users (comma separated)
+
+
+services:
+  bot:
+    build:
+      context: .
+    image: jnummelin/kontena-slack-bot:latest
+    environment:
+      - KONTENA_URL=${master}
+      - KONTENA_GRID=${grid}
+      - SSL_IGNORE_ERRORS=${ignore_ssl}
+      - BOT_NAME=${name}
+      - ALLOWED_USERS=${allowed_users}
+    secrets:
+      - secret: ${STACK}-SLACK_TOKEN
+        name: SLACK_TOKEN
+        type: env
+      - secret: ${STACK}-KONTENA_TOKEN
+        name: KONTENA_TOKEN
+        type: env
