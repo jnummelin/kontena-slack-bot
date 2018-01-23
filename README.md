@@ -10,7 +10,17 @@ Slack bot for Kontena.
 
 The bot is provided as Docker image which you can run pretty easily:
 ```
-docker run -d -e SLACK_TOKEN=xoxb-1243576874-XXXXXXXXXXXXXXXXXXX -e KONTENA_TOKEN=kontena-token -e KONTENA_URL=https://192.168.100.100:8443 -e KONTENA_GRID=my-grid -e SSL_IGNORE_ERRORS=true -e BOT_NAME=kontenabot -e ALLOWED_USERS=user1,user2 BOT_NAME kontenabot jnummelin/kontena-slack-bot:latest
+docker run \
+    --name kontena-slack-bot \
+    -e SLACK_TOKEN=xoxb-1243576874-XXXXXXXXXXXXXXXXXXX \
+    -e KONTENA_TOKEN=kontena-token \
+    -e KONTENA_URL=https://192.168.100.100:8443 \
+    -e KONTENA_GRID=my-grid \
+    -e SSL_IGNORE_ERRORS=true \
+    -e BOT_NAME=kontenabot \
+    -e ALLOWED_USERS=user1,user2 \
+    -e BOT_NAME=kontenabot \
+    -d jnummelin/kontena-slack-bot:latest
 ```
 
 The env parameters are pretty self-explanatory I think. The ALLOWED_USERS is a comma separated list of Slack users that are allowed to control the bot. If you do not specify the list at all the bot thinks it's OK to allow anyone to control it.
